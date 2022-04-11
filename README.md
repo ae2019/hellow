@@ -1,4 +1,3 @@
-# hellow
-test desc
-lala  
-i'm good man
+# Angular task crypto for US tickeron company
+
+List of cryptocurrencies with graph

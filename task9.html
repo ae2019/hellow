@@ -1,0 +1,188 @@
+<!DOCTYPE HTML>
+<html ng-app="Test4TickeronApp">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>test 9</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="externals/angular.min.js"></script>
+	<script type="text/javascript" src="data.json"></script>
+	<script src="externals/moment.js" type="text/javascript"></script>
+
+	<link rel="stylesheet" href="externals/bootstrap.min.css">
+	<script type="text/javascript" src="externals/loader.js"></script>
+
+<style>
+	#first  { background-color:#eee; padding: 10px;}
+	#second { background-color:#e4e4e4; padding-bottom: 20px;}
+	.cr 	{ color: #657e97;}
+	.card 	{ width: 300px; margin: 15px 0px; }
+	.sear 	{ height: 26px;    padding-top: 0px;}
+	.btn 	{ padding: 2px 10px;    margin: 0px 0px 4px 1px;  height: 26px;}
+	.list-group {width:90%;}
+	.chartx {width:300px; height:270px; }
+</style>
+	<!-- Efremov Anufriy 2018 -->
+</head>
+
+<body ng-controller="Test4TickeronCtrl">
+
+<script>
+		var app=angular.module("Test4TickeronApp",[]);
+	
+		app.controller("Test4TickeronCtrl", function ($scope, $location) 
+		{
+			$scope.items = json;
+			
+			// Curent selection
+			$scope.cur_id = -1;
+			
+			// Get modified date
+			$scope.DataSince = function (dat) 
+			{
+				var dt=moment(dat,"YYYY-MM-DD").fromNow(); 
+	            return dt;
+	        }
+		
+			/* function-filtr for search in currencies */
+			$scope.searFunc = function (item)
+			{
+				if (undefined==$scope.search)
+					return true;
+				
+				var str = item.ticker.toUpperCase()+" "+item.name.toUpperCase();
+				sear = $scope.search.toUpperCase();
+				var res = str.indexOf(sear)
+				
+				return (-1!=res)
+	        }
+			
+			/* function saves cur_id to url */
+			$scope.saveUrl = function (i)
+			{
+				// set inner var of current selection
+				$scope.cur_id = i;
+				
+				
+				/*var url = "cur_id=" + i;
+			
+				$location.path(url);
+			    $scope.$apply();*/
+
+				$location.search('cur_id', i);
+			    $scope.$apply();
+				
+				return true;
+			}
+			
+			/* function-checks if cur is already selected (type in traffic) */
+			$scope.cur_already_selected = function (i)
+			{
+				var url_cur_id = $location.search().cur_id;
+				
+				if (undefined==url_cur_id)
+					return false;
+				
+				// inner selection var = from url
+				if ($scope.cur_id<0)
+					$scope.cur_id = url_cur_id;
+					
+				return (i==$scope.cur_id)
+	        }
+			
+			/* clears selection when search */
+			$scope.clearSel = function ()
+			{
+				$scope.cur_id = -1;
+				$scope.saveUrl($scope.cur_id);
+			}
+
+		});
+</script>
+
+<div class="container-fluid">
+<div class="row">
+	<div class="col-sm-5" id=first>
+
+	<input type="text" ng-model="search" placeholder="Search" class="sear" ng-change="clearSel()">
+	<button type="button" class="btn btn-default btn-sm">Go</button>
+
+	<h4>List of cryptocurrencies</h4>
+
+	<div class="list-group" id="list-tab" role="tablist">
+     <a ng-repeat="item in items | filter : searFunc" ng-click="saveUrl($index)" ng-class="{'active show': cur_already_selected($index) }" class="list-group-item list-group-item-action" data-toggle="list" href="#list-{{$index}}" role="tab">{{item.ticker}} - {{item.name}}</a>
+    </div>
+    
+	</div>
+    
+    <!-- Second pane -->
+	<div class="col-sm-7" id=second>
+		<div class="tab-content1">
+         
+	      <div ng-repeat="item in items | filter : searFunc" class="tab-pane1" id="list-{{$index}}" ng-show="cur_id==$index">
+			<!-- details of currency in card -->
+			<div class="card">
+			  <div class="card-body">
+			    <h5 class="card-title">{{item.ticker}} / #{{item.id}}</h5> <!--{{$index}} -->
+			    <p class="card-text">name: {{item.name}}    <br>  </p>
+			    <kbd>Created: {{DataSince(item.createdOn)}}</kbd>
+			  </div>
+			</div>
+
+    		<!-- Chart number #index here -->
+            <div id="chart_div{{$index}}" class=chartx></div>
+            
+		 </div> <!-- end tab-pane repeat -->
+            
+		</div> <!-- tab-content1 -->
+    
+    </div>
+    
+	</div>
+</div> <!-- end row -->
+</div> <!-- end container -->
+
+    <!-- chart loading -->
+	<script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+	  
+	  /***************/
+      function drawChart() 
+	  {
+		// Drawing charts for all currencies
+		for (cur_ind=0; cur_ind<json.length; cur_ind++)
+		{
+			// generating data source
+			$data_source = 	[ ["Date","Price"] ];
+			for (i=0; i<json[cur_ind].chart.length; i++)
+			{
+			 	$data_source[i+1] = ["",""];
+				$data_source[i+1][0] = json[cur_ind].chart[i].date;
+				$data_source[i+1][1] = json[cur_ind].chart[i].price;
+			}
+	        var data = google.visualization.arrayToDataTable($data_source);
+	
+			// draw by 3 lines 
+	        var options = { 
+				title: json[cur_ind].name+' cryptocurrency rate, USD',
+	          	hAxis: {title: 'Date',  titleTextStyle: {color: '#333'}},
+	          	vAxis: {minValue: 0} 
+			  ,chartArea:{left:50,top:50,width:"50%",height:"50%"}
+			  ,width: 300
+			  ,height: 270
+			  };
+	
+	        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'+cur_ind));
+	        chart.draw(data, options);
+		} // end for
+      }
+    </script>
+
+<!-- Bootstrap includings -->
+<script src="externals/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="externals/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="externals/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<!-- end of Bootstrap includings -->
+
+</body>
+</html>
